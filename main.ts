@@ -31,7 +31,7 @@ export default class AutoScrollPlugin extends Plugin {
 	}
 	private performScroll() {
 			if(this.app.workspace.activeLeaf){
-				const editor = this.app.workspace.activeLeaf.view.editor as Editor;
+				const editor = (this.app.workspace.activeLeaf.view as any).editor as Editor;
 				const {top, left} = editor.getScrollInfo();
 				// console.log({
 				// 	currentTop: this.currentTop,
