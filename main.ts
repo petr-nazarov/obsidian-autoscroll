@@ -1,85 +1,101 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
+import { App, Editor,  Notice, Plugin, PluginSettingTab, Setting, addIcon } from 'obsidian';
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-	mySetting: string;
+
+interface AutoScrollSettings {
+	speed: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: AutoScrollSettings = {
+	speed: '0.2'
 }
+const allowedSpeeds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2];
+const ribbonActiveClassName = 'autoscroll-ribbon-active';
+export default class AutoScrollPlugin extends Plugin {
+	settings: AutoScrollSettings;
+	active: boolean = false;
+	intervalId: number;
+	ribbonIconEl: HTMLElement;
+	currentTop: number = 0;
+	nextTop: number =0;
+	/**
+	 * The ammount of pixels to pass in 10 ms
+	 */
+	speed: number 
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+	private stopScroll(text: string = 'Stopping Auto Scroller') {
+		window.clearInterval(this.intervalId);
+		this.active = false;
+		this.ribbonIconEl.removeClass(ribbonActiveClassName);
+		new Notice(text);
+	}
+	private performScroll() {
+			if(this.app.workspace.activeLeaf){
+				const editor = this.app.workspace.activeLeaf.view.editor as Editor;
+				const {top, left} = editor.getScrollInfo();
+				// console.log({
+				// 	currentTop: this.currentTop,
+				// 	nextTop :this.nextTop,
+				// })
+				if (this.nextTop - this.currentTop > 1) {
+					// console.log('scrolling')
+					editor.scrollTo(left, this.nextTop);
+					const {top:newTop, left: newLeft} = editor.getScrollInfo();
+					this.currentTop = newTop;
+					if (newTop === this.nextTop) {
+						this.stopScroll('Scrolled to the end!');
 
+					} 
+				} else{
+					this.currentTop = top;
+					this.nextTop += this.speed;
+				}
+			}
+		
+	}
+	private increaseSpeed() {
+		const currentSpeedIndex = allowedSpeeds.indexOf(this.speed) || allowedSpeeds.indexOf(0.5);
+		if(currentSpeedIndex === allowedSpeeds.length - 1) {
+			this.speed = allowedSpeeds[0];
+		} else {
+			this.speed = allowedSpeeds[currentSpeedIndex + 1];
+		}
+		new Notice('Setting speed to ' + this.speed);
+		
+	}
 	async onload() {
+		this.active = false;
 		await this.loadSettings();
+		this.speed = parseFloat(this.settings.speed);
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+		this.ribbonIconEl = this.addRibbonIcon('double-down-arrow-glyph', `Auto Scroller (speed ${this.speed})`, (evt: MouseEvent) => {
+			
+			// Clicked with left mouse button
+			if (evt.button === 0) {
+				const currentState = this.active;
+				if (currentState) {
+					this.stopScroll()
+				} else{
+					new Notice('Starting Auto Scroller');
+					this.ribbonIconEl.addClass(ribbonActiveClassName);
+					this.active = true;
+					this.speed = parseFloat(this.settings.speed);
+					this.intervalId = this.registerInterval(window.setInterval(() => this.performScroll(),  10));
 				}
+			} else{
+				// Clicked with right mouse button
+				this.increaseSpeed();
 			}
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new AutoScrollSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	onunload() {
-
+		// window.clearInterval(this.intervalId);
 	}
 
 	async loadSettings() {
@@ -91,26 +107,12 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
 
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
+class AutoScrollSettingTab extends PluginSettingTab {
+	plugin: AutoScrollPlugin;
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: AutoScrollPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -120,18 +122,24 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		const speedOptions = allowedSpeeds.reduce((acc, speed) => {
+			const strSpeed =  `${speed}`
+			acc[strSpeed] = strSpeed;
+			return acc;
+		}, {} as Record<string, string>);
+
+		containerEl.createEl('h2', {text: 'Settings for Autoscroll Plugin'});
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
+			.setName('Default scrolling speed')
+			.setDesc('The amount of pixels to pass in 10 ms')
+			.addDropdown((dropdown) => dropdown.addOptions(speedOptions)
+			.onChange(async (value) => {
+				// console.log('Secret: ' + value);
+			 	this.plugin.settings.speed = value;
+				await this.plugin.saveSettings();
+			})
+			)
+		
 	}
 }
