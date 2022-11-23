@@ -1,4 +1,4 @@
-import { App, Editor,  Notice, Plugin, PluginSettingTab, Setting, addIcon } from 'obsidian';
+import { App, Editor,  Notice, Plugin, PluginSettingTab, Setting, addIcon, MarkdownView } from 'obsidian';
 // Remember to rename these classes and interfaces!
 
 
@@ -30,8 +30,9 @@ export default class AutoScrollPlugin extends Plugin {
 		new Notice(text);
 	}
 	private performScroll() {
-			if(this.app.workspace.activeLeaf){
-				const editor = (this.app.workspace.activeLeaf.view as any).editor as Editor;
+			const view = app.workspace.getActiveViewOfType(MarkdownView);
+			if(view){
+				const editor = view.editor;
 				const {top, left} = editor.getScrollInfo();
 				// console.log({
 				// 	currentTop: this.currentTop,
@@ -95,7 +96,7 @@ export default class AutoScrollPlugin extends Plugin {
 	}
 
 	onunload() {
-		// window.clearInterval(this.intervalId);
+		window.clearInterval(this.intervalId);
 	}
 
 	async loadSettings() {
