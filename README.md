@@ -2,6 +2,11 @@
 
 This is a sample plugin for Obsidian (https://obsidian.md).
 
+
+
+https://user-images.githubusercontent.com/15689774/203650814-d8bd8164-c4c5-46cd-8cfe-8207f24ff9aa.mp4
+
+
 ## Features
 - Adds a button to scroll the content of opened file
 - Right click on the button to change the scroll speed
