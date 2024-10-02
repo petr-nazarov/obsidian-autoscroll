@@ -93,7 +93,6 @@ export default class AutoScrollPlugin extends Plugin {
 			},
 		})
 
-		console.log(this.settings.showRibbonIcon, this.ribbonIconEl)
 		if (this.settings.showRibbonIcon) {
 			this.ribbonIconEl = this.addRibbonIcon('double-down-arrow-glyph', `Auto Scroller (speed ${this.settings.speed})`, e => {
 				if (e.button === 0) { // left mouse button
