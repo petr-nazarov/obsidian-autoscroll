@@ -9,8 +9,10 @@ const DEFAULT_SETTINGS: AutoScrollSettings = {
 	speed: 0.2,
 	showRibbonIcon: true,
 }
+
 const ribbonActiveClassName = 'autoscroll-ribbon-active';
-const pluginId = 'autoscroll';
+const pluginId = 'obsidian-autoscroll';
+
 export default class AutoScrollPlugin extends Plugin {
 	settings: AutoScrollSettings;
 	active: boolean = false;
@@ -37,7 +39,6 @@ export default class AutoScrollPlugin extends Plugin {
 
 			const { top: newTop } = editor.getScrollInfo();
 			if (top === newTop) {
-				new Notice('Scrolled to the end!');
 				this.stopScroll()
 			}
 		}
@@ -96,8 +97,10 @@ export default class AutoScrollPlugin extends Plugin {
 		if (this.settings.showRibbonIcon) {
 			this.ribbonIconEl = this.addRibbonIcon('double-down-arrow-glyph', `Auto Scroller (speed ${this.settings.speed})`, e => {
 				if (e.button === 0) { // left mouse button
+					// @ts-ignore
 					app.commands.executeCommandById(`${pluginId}:toggle-scrolling`);
 				} else { // right mouse button
+					// @ts-ignore
 					app.commands.executeCommandById(`${pluginId}:increase-speed`);
 				}
 			})
@@ -135,17 +138,19 @@ class AutoScrollSettingTab extends PluginSettingTab {
 		containerEl.createEl('h2', { text: 'Settings for Autoscroll Plugin' });
 
 		new Setting(containerEl)
-			.setName('Show Ribbon Icon')
+			.setName('Show ribbon icon')
 			.addToggle(toggle => toggle
-				.setValue(true)
+				.setValue(this.plugin.settings.showRibbonIcon)
 				.onChange(value => {
 					this.plugin.settings.showRibbonIcon = value;
 					this.plugin.saveSettings();
 					if (value) {
 						this.plugin.ribbonIconEl = this.plugin.addRibbonIcon('double-down-arrow-glyph', `Auto Scroller (speed ${this.plugin.settings.speed})`, e => {
 							if (e.button === 0) { // left mouse button
+								// @ts-ignore
 								app.commands.executeCommandById(`${pluginId}:toggle-scrolling`);
 							} else { // right mouse button
+								// @ts-ignore
 								app.commands.executeCommandById(`${pluginId}:increase-speed`);
 							}
 						})
@@ -156,7 +161,7 @@ class AutoScrollSettingTab extends PluginSettingTab {
 			)
 
 		new Setting(containerEl)
-			.setName('Default scrolling speed')
+			.setName('Scrolling speed')
 			.setDesc('The number of pixels to pass in 10 ms')
 			.addSlider(slider => slider
 				.setLimits(.1, 2, .1)
